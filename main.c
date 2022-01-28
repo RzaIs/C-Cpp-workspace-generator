@@ -45,7 +45,6 @@ int main(int argc, char const *argv[])
             create_makefile(True);
             create_main(True);
         }
-        
     }
 
     execlp("code", "code", ".", NULL);
