@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
-#include <errno.h>
 #include <unistd.h>
 #include <fcntl.h> 
 #include <string.h>
-#include <wait.h>
+
+#ifdef __linux__
+    #include <wait.h>
+#endif
 #include <getopt.h>
 
 #define True 1
@@ -13,7 +15,6 @@
 
 typedef unsigned char boolean;
 
-void error_check(int result, char * dirName);
 void create_dirs(boolean is_advanced);
 void create_makefile(boolean is_C, boolean is_advanced);
 void create_main(boolean is_C);
@@ -50,7 +51,6 @@ int main(int argc, char * const * argv)
             break;
         }
     }
-
     create_dirs(advanced);
     create_makefile(is_c, advanced);
     create_main(is_c);
@@ -189,78 +189,49 @@ $(COMPILER) -c $< -o $@ -I \"$(HDRdir)/\"\n";
 
 void create_dirs(boolean is_advanced)
 {
-    errno = 0;
-    
-    int result;
     pid_t pid;
 
-    result = mkdir("hdr", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     pid = fork();
     if(pid == 0)
     {
-        error_check(result, "hdr");
+        execlp("mkdir", "mkdir", "hdr", NULL);
         exit(1);
     }
     wait(NULL);
 
-    result = mkdir("src", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     pid = fork();
     if(pid == 0)
     {
-        error_check(result, "src");
+        execlp("mkdir", "mkdir", "src", NULL);
         exit(1);
     }
     wait(NULL);
 
-    result = mkdir("bin", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     pid = fork();
     if(pid == 0)
     {
-        error_check(result, "bin");
+        execlp("mkdir", "mkdir", "bin", NULL);
         exit(1);
     }
     wait(NULL);
     
     if(is_advanced)
     {
-        result = mkdir("bin/debug", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
         pid = fork();
         if(pid == 0)
         {
-            error_check(result, "bin/debug");
+            execlp("mkdir", "mkdir", "bin/debug", NULL);
             exit(1);
         }
 
         wait(NULL);
 
-        result = mkdir("bin/release", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
         pid = fork();
         if(pid == 0)
         {
-            error_check(result, "bin/release");
+            execlp("mkdir", "mkdir", "bin/release", NULL);
             exit(1);
         }
     }
     wait(NULL);
-}
-
-void error_check(int result, char * dirName)
-{
-    if (result == -1) {
-        printf("for %s: ", dirName);
-        switch (errno) {
-            case EACCES :
-                printf("the parent directory does not allow write\n");
-                exit(EXIT_FAILURE);
-            case EEXIST:
-                printf("pathname already exists\n");
-                exit(EXIT_FAILURE);
-            case ENAMETOOLONG:
-                printf("pathname is too long\n");
-                exit(EXIT_FAILURE);
-            default:
-                perror("mkdir\n");
-                exit(EXIT_FAILURE);
-        }
-    }
 }
