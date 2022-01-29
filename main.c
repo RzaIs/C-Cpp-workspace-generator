@@ -174,12 +174,13 @@ obj = $(patsubst $(SRCdir)/%$(EX), $(OBJdir)/%.o, $(wildcard $(SRCdir)/*))\n\
 hdr = $(wildcard $(HDRdir)/*)\n\n\
 build: $(OBJdir)/run\n\n\
 run: $(OBJdir)/run\n\t./$^\n\n\
-clean:\n\trm $(OBJdir)/*\n\n\
+clean:\n\
+\t@if [ -f $(OBJdir)/* ]; then rm $(OBJdir)/*; fi\n\n\
 $(OBJdir)/run: $(obj)\n\t$(COMPILER) $^ -o $@\n\n\
 $(OBJdir)/%.o: $(SRCdir)/%$(EX) $(hdr)\n\t\
 $(COMPILER) -c $< -o $@ -I \"$(HDRdir)/\"\n";
 
-        write(fd, content, 343);
+        write(fd, content, 376);
     }
     
     close(fd);
