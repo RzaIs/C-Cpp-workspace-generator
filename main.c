@@ -6,6 +6,7 @@
 #include <fcntl.h> 
 #include <string.h>
 #include <wait.h>
+#include <getopt.h>
 
 #define True 1
 #define False 0
@@ -13,41 +14,49 @@
 typedef unsigned char boolean;
 
 void error_check(int result, char * dirName);
-void create_dirs();
-void create_makefile(boolean is_C);
+void create_dirs(boolean is_advanced);
+void create_makefile(boolean is_C, boolean is_advanced);
 void create_main(boolean is_C);
 
-int main(int argc, char const *argv[])
+int main(int argc, char * const * argv)
 {
-    create_dirs();
+    boolean is_c = True;
+    boolean run_vs_code = False;
+    boolean advanced = False;
 
-    if (argc < 2)
+    int opt;
+
+    while ((opt = getopt(argc, argv, "c:va")) != -1)
     {
-        printf("No compiler name provided, so gcc will be used\n");
-        create_makefile(True);
-        create_main(True);
-    }
-    else
-    {
-        if (strcmp(argv[1], "g++") == 0)
+        switch (opt)
         {
-            create_makefile(False);
-            create_main(False);
-        }
-        else if (strcmp(argv[1], "gcc") == 0)
-        {
-            create_makefile(True);
-            create_main(True);
-        }
-        else
-        {
-            printf("Unknown compiler name provided, so gcc will be used\n");
-            create_makefile(True);
-            create_main(True);
+        case 'c':
+            if(strcmp(optarg, "g++") == 0)
+            {
+                is_c = False;
+            }
+            else if(strcmp(optarg, "gcc") != 0)
+            {
+                printf("Unknown compiler entered, so gcc will be used\n");
+            }
+            break;
+        case 'v':
+            run_vs_code = True;
+            break;
+        case 'a':
+            advanced = True;
+            break;
+        default:
+            break;
         }
     }
 
-    execlp("code", "code", ".", NULL);
+    create_dirs(advanced);
+    create_makefile(is_c, advanced);
+    create_main(is_c);
+
+    if(run_vs_code)
+        execlp("code", "code", ".", NULL);
     return 0;
 }
 
@@ -95,7 +104,7 @@ int main(int argc, char const *argv[])\n\
     close(fd);
 }
 
-void create_makefile(boolean is_C)
+void create_makefile(boolean is_C, boolean is_advanced)
 {
     int fd = open(
         "Makefile", O_WRONLY | O_CREAT | O_TRUNC,
@@ -106,14 +115,58 @@ void create_makefile(boolean is_C)
 
     if (is_C)
     {
-        write(fd, "COMPILER = gcc\nEX = .c\n", 23);
+        write(fd, "COMPILER = gcc\nEX = .c\n\n", 24);
     }
     else
     {
-        write(fd, "COMPILER = g++\nEX = .cpp\n", 25);
+        write(fd, "COMPILER = g++\nEX = .cpp\n\n", 26);
     }
 
-    char * content = \
+    if(is_advanced)
+    {
+        char * content = \
+"OBJdir = bin\n\
+DEBUGdir = $(OBJdir)/debug\n\
+RELEASEdir = $(OBJdir)/release\n\
+HDRdir = hdr\n\
+SRCdir = src\n\n\
+DEBUGflags = -m64 -g -Wall\n\
+RELEASEflags = -m64 -O3 -Wall\n\n\
+LINKERS =\n\n\
+debug_obj = $(patsubst $(SRCdir)/%$(EX), $(DEBUGdir)/%.o, $(wildcard $(SRCdir)/*))\n\
+release_obj = $(patsubst $(SRCdir)/%$(EX), $(RELEASEdir)/%.o, $(wildcard $(SRCdir)/*))\n\
+hdr = $(wildcard $(HDRdir)/*)\n\n\
+build_debug: $(DEBUGdir)/run\n\
+build_release: $(RELEASEdir)/run\n\n\
+run_debug: $(DEBUGdir)/run\n\t./$^\n\n\
+run_release: $(RELEASEdir)/run\n\t./$^\n\n\
+clean:\n\
+\t@if [ -f $(DEBUGdir)/*.o ]; then rm $(DEBUGdir)/*.o; fi\n\
+\t@if [ -f $(DEBUGdir)/run ]; then rm $(DEBUGdir)/run; fi\n\
+\t@if [ -f $(RELEASEdir)/*.o ]; then rm $(RELEASEdir)/*.o; fi\n\
+\t@if [ -f $(RELEASEdir)/run ]; then rm $(RELEASEdir)/run; fi\n\
+\n\
+$(DEBUGdir)/run: $(debug_obj)\n\
+\t$(COMPILER) $^ -o $@ \\\n\
+\t$(LINKERS)\n\
+\n\
+$(RELEASEdir)/run: $(release_obj)\n\
+\t$(COMPILER) $^ -o $@ \\\n\
+\t$(LINKERS)\n\
+\n\
+$(DEBUGdir)/%.o: $(SRCdir)/%$(EX) $(hdr)\n\
+\t$(COMPILER) -c $< -o $@ \\\n\
+\t-I \"$(HDRdir)/\" $(DEBUGflags)\n\
+\n\
+$(RELEASEdir)/%.o: $(SRCdir)/%$(EX) $(hdr)\n\
+\t$(COMPILER) -c $< -o $@ \\\n\
+\t-I \"$(HDRdir)/\" $(RELEASEflags)\n";
+
+        write(fd, content, 1088);
+    }
+    else
+    {
+        char * content = \
 "OBJdir = bin\n\
 HDRdir = hdr\n\
 SRCdir = src\n\n\
@@ -126,12 +179,14 @@ $(OBJdir)/run: $(obj)\n\t$(COMPILER) $^ -o $@\n\n\
 $(OBJdir)/%.o: $(SRCdir)/%$(EX) $(hdr)\n\t\
 $(COMPILER) -c $< -o $@ -I \"$(HDRdir)/\"\n";
 
-    write(fd, content, 343);
+        write(fd, content, 343);
+    }
+    
     close(fd);
 }
 
 
-void create_dirs()
+void create_dirs(boolean is_advanced)
 {
     errno = 0;
     
@@ -162,6 +217,28 @@ void create_dirs()
     {
         error_check(result, "bin");
         exit(1);
+    }
+    wait(NULL);
+    
+    if(is_advanced)
+    {
+        result = mkdir("bin/debug", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        pid = fork();
+        if(pid == 0)
+        {
+            error_check(result, "bin/debug");
+            exit(1);
+        }
+
+        wait(NULL);
+
+        result = mkdir("bin/release", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        pid = fork();
+        if(pid == 0)
+        {
+            error_check(result, "bin/release");
+            exit(1);
+        }
     }
     wait(NULL);
 }
