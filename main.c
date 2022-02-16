@@ -175,12 +175,14 @@ hdr = $(wildcard $(HDRdir)/*)\n\n\
 build: $(OBJdir)/run\n\n\
 run: $(OBJdir)/run\n\t./$^\n\n\
 clean:\n\
-\t@if [ -f $(OBJdir)/* ]; then rm $(OBJdir)/*; fi\n\n\
+\t@if [ -f $(OBJdir)/*.o ]; then rm $(OBJdir)/*.o; fi\n\
+\t@if [ -f $(OBJdir)/run ]; then rm $(OBJdir)/run; fi\n\
+\n\
 $(OBJdir)/run: $(obj)\n\t$(COMPILER) $^ -o $@\n\n\
 $(OBJdir)/%.o: $(SRCdir)/%$(EX) $(hdr)\n\t\
 $(COMPILER) -c $< -o $@ -I \"$(HDRdir)/\"\n";
 
-        write(fd, content, 376);
+        write(fd, content, 433);
     }
     
     close(fd);
