@@ -8,16 +8,12 @@
 
 #ifdef __linux__
     #include <wait.h>
-    #define MAKEFILE_TEMP1_PATH "/.genenv_config/makefile1"
-    #define MAKEFILE_TEMP2_PATH "/.genenv_config/makefile2"
-    #define MAIN_TEMP_PATH "/.genenv_config/main"
 #endif
 
-#ifdef __APPLE__
-    #define MAKEFILE_TEMP1_PATH "/.genenv_config/template1"
-    #define MAKEFILE_TEMP2_PATH "/.genenv_config/template2"
-    #define MAIN_TEMP_PATH "/.genenv_config/main"
-#endif
+#define MAKEFILE_TEMP1_PATH "/.genenv_config/makefile1"
+#define MAKEFILE_TEMP2_PATH "/.genenv_config/makefile2"
+#define MAIN_TEMP_PATH "/.genenv_config/main"
+
 
 
 #define True 1
