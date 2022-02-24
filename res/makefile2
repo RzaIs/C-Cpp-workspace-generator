@@ -1,0 +1,48 @@
+COMPILER = g++
+EX = .cpp
+
+OBJdir = bin
+DEBUGdir = $(OBJdir)/debug
+RELEASEdir = $(OBJdir)/release
+HDRdir = include
+SRCdir = src
+
+DEBUGflags = -m64 -g -Wall
+RELEASEflags = -m64 -O3 -Wall
+
+LINKERS =
+
+debug_obj = $(patsubst $(SRCdir)/%$(EX), $(DEBUGdir)/%.o, $(wildcard $(SRCdir)/*))
+release_obj = $(patsubst $(SRCdir)/%$(EX), $(RELEASEdir)/%.o, $(wildcard $(SRCdir)/*))
+hdr = $(wildcard $(HDRdir)/*)
+
+build_debug: $(DEBUGdir)/run
+build_release: $(RELEASEdir)/run
+
+run_debug: $(DEBUGdir)/run
+	./$^
+
+run_release: $(RELEASEdir)/run
+	./$^
+
+clean:
+	@if [ -f $(DEBUGdir)/*.o ]; then rm $(DEBUGdir)/*.o; fi
+	@if [ -f $(DEBUGdir)/run ]; then rm $(DEBUGdir)/run; fi
+	@if [ -f $(RELEASEdir)/*.o ]; then rm $(RELEASEdir)/*.o; fi
+	@if [ -f $(RELEASEdir)/run ]; then rm $(RELEASEdir)/run; fi
+
+$(DEBUGdir)/run: $(debug_obj)
+	$(COMPILER) $^ -o $@ \
+	$(LINKERS)
+
+$(RELEASEdir)/run: $(release_obj)
+	$(COMPILER) $^ -o $@ \
+	$(LINKERS)
+
+$(DEBUGdir)/%.o: $(SRCdir)/%$(EX) $(hdr)
+	$(COMPILER) -c $< -o $@ \
+	-I "$(HDRdir)/" $(DEBUGflags)
+
+$(RELEASEdir)/%.o: $(SRCdir)/%$(EX) $(hdr)
+	$(COMPILER) -c $< -o $@ \
+	-I "$(HDRdir)/" $(RELEASEflags)

@@ -1,8 +1,14 @@
-# C/C++ Makefile generator
+# C/C++ Worksace generator
 
-the program creates three folder named "src", "hdr", "bin" which respectively contain source(c or cpp), header(h or hpp) and bin(object and executeable) files.(with the flag -a it creates "debug" and "release" folder separately in bin)
-Then it creates a main.c or main.cpp file in src folder with a boilerplate depend on the command line argument.
-If the command line argument is "-c g++" a C++ program enviroment will be created, if it is "-c gcc" a C program enviroment will be created. In other cases (neither gcc not g++ or no argument) it will create a gcc enviroment by default.
-A makefile will be created which is capable of building and running project efficiently.if "-a" flag has been entered then it will have advanced options like debug and release build It can also clean (remove) the files in bin folder
-At the end the visual studio code will be opened if "-v" is given with the current directory as workspace, so if you don't have vs code on your machine it will generate a enviroment correctly bu will crash at the end while trying to opne vs code if "-v" is given.
-This code works on only Linux/Unix
+## What this program does?
+The program creates directories "src" "include" and "bin" for orgaising your workspace and also creates a makefile for easy compile/run.
+
+## How to install
+Simple! Open a terminal in the project folder and type "sh install.sh" and enter your password for root access (this is required to move executable program inside "/usr/local/bin")
+
+## How to use it?
+With the "genenv" command. There is some flags you should know how to use. '-c' flag is to determine your compiler is either C or C++ compiler.Use it like "-c gcc" or "-c g++". the default compiler is gcc.
+'-a' command creates two folder in "bin" "debug" and "release" and creates makefile repectively, which let's you to compile and run your code more specifically. '-d' flag is to choose your workspace if you don't want to use current directory as your workspace. Use it like " -d 'your/work/space' ". "-v" opens vs code on your worksapce if you want. As an example if we want to create a C++ workspace in a custom folder with advanced build management and open cs vode it will be "genenv -c g++ -d project1 -a -v".
+
+## Platforms
+This code works on Unix/Linux systems.

@@ -4,30 +4,45 @@
 #include <unistd.h>
 #include <fcntl.h> 
 #include <string.h>
+#include <getopt.h>
 
 #ifdef __linux__
     #include <wait.h>
+    #define MAKEFILE_TEMP1_PATH "/.genenv_config/makefile1"
+    #define MAKEFILE_TEMP2_PATH "/.genenv_config/makefile2"
+    #define MAIN_TEMP_PATH "/.genenv_config/main"
 #endif
-#include <getopt.h>
+
+#ifdef __APPLE__
+    #define MAKEFILE_TEMP1_PATH "/.genenv_config/template1"
+    #define MAKEFILE_TEMP2_PATH "/.genenv_config/template2"
+    #define MAIN_TEMP_PATH "/.genenv_config/main"
+#endif
+
 
 #define True 1
 #define False 0
 
+static char * HOME_PATH;
+
 typedef unsigned char boolean;
 
+void create_dir(char * dirName);
 void create_dirs(boolean is_advanced);
 void create_makefile(boolean is_C, boolean is_advanced);
 void create_main(boolean is_C);
 
-int main(int argc, char * const * argv)
+int main(int argc, char ** argv)
 {
+    HOME_PATH = getenv("HOME");
+
     boolean is_c = True;
     boolean run_vs_code = False;
     boolean advanced = False;
 
     int opt;
 
-    while ((opt = getopt(argc, argv, "c:va")) != -1)
+    while ((opt = getopt(argc, argv, "c:vad:")) != -1)
     {
         switch (opt)
         {
@@ -47,6 +62,10 @@ int main(int argc, char * const * argv)
         case 'a':
             advanced = True;
             break;
+        case 'd':
+            create_dir(optarg);
+            chdir(optarg);
+            break;
         default:
             break;
         }
@@ -57,183 +76,108 @@ int main(int argc, char * const * argv)
 
     if(run_vs_code)
         execlp("code", "code", ".", NULL);
+
     return 0;
 }
 
 void create_main(boolean is_C)
 {
-    int fd;
-    if(is_C)
+    char * fileName;
+    char * heading;
+
+    if (is_C)
     {
-        fd = open(
-            "src/main.c", O_WRONLY | O_CREAT | O_TRUNC,
-            S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH
-        );
-
-        char * content = \
-"#include <stdio.h>\n\
-#include <stdlib.h>\n\n\
-int main(int argc, char const *argv[])\n\
-{\n\
-\t/* code */\n\
-\treturn 0;\n\
-}\n";
-
-        write(fd, content, 106);
-
+        fileName = "src/main.c";
+        heading = "#include <stdio.h>\n#include <stdlib.h>\n\n";
     }
     else
     {
-        fd = open(
-            "src/main.cpp", O_WRONLY | O_CREAT | O_TRUNC,
+        fileName = "src/main.cpp";
+        heading = "#include <iostream>\n\nusing namespace std;\n\n";
+    }
+
+
+    int mainFile = open(
+            fileName, O_WRONLY | O_CREAT | O_TRUNC,
             S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH
         );
+    
+    write(mainFile, heading, strlen(heading));
 
-        char * content = \
-"#include <iostream>\n\n\
-using namespace std;\n\n\
-int main(int argc, char const *argv[])\n\
-{\n\
-\t/* code */\n\
-\treturn 0;\n\
-}\n";
+    char mainPath[255]; strcpy(mainPath, HOME_PATH);
+    strcat(mainPath, MAIN_TEMP_PATH);
 
-        write(fd, content, 109);
+    int template = open(mainPath, O_RDONLY);
 
-    }
-    close(fd);
+    char letter;
+    while(read(template, &letter, 1) > 0)
+        write(mainFile, &letter, 1);
+
+    close(mainFile);
+    close(template);
 }
 
 void create_makefile(boolean is_C, boolean is_advanced)
 {
-    int fd = open(
+    int Makefile = open(
         "Makefile", O_WRONLY | O_CREAT | O_TRUNC,
         S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH
     );
 
-    if(fd == -1){ printf("Error while creating Makefile\n"); exit(1); }
+    if(Makefile == -1){ printf("Error while creating Makefile\n"); exit(1); }
 
     if (is_C)
     {
-        write(fd, "COMPILER = gcc\nEX = .c\n\n", 24);
+        write(Makefile, "COMPILER = gcc\nEX = .c\n\n", 24);
     }
     else
     {
-        write(fd, "COMPILER = g++\nEX = .cpp\n\n", 26);
-    }
-
-    if(is_advanced)
-    {
-        char * content = \
-"OBJdir = bin\n\
-DEBUGdir = $(OBJdir)/debug\n\
-RELEASEdir = $(OBJdir)/release\n\
-HDRdir = hdr\n\
-SRCdir = src\n\n\
-DEBUGflags = -m64 -g -Wall\n\
-RELEASEflags = -m64 -O3 -Wall\n\n\
-LINKERS =\n\n\
-debug_obj = $(patsubst $(SRCdir)/%$(EX), $(DEBUGdir)/%.o, $(wildcard $(SRCdir)/*))\n\
-release_obj = $(patsubst $(SRCdir)/%$(EX), $(RELEASEdir)/%.o, $(wildcard $(SRCdir)/*))\n\
-hdr = $(wildcard $(HDRdir)/*)\n\n\
-build_debug: $(DEBUGdir)/run\n\
-build_release: $(RELEASEdir)/run\n\n\
-run_debug: $(DEBUGdir)/run\n\t./$^\n\n\
-run_release: $(RELEASEdir)/run\n\t./$^\n\n\
-clean:\n\
-\t@if [ -f $(DEBUGdir)/*.o ]; then rm $(DEBUGdir)/*.o; fi\n\
-\t@if [ -f $(DEBUGdir)/run ]; then rm $(DEBUGdir)/run; fi\n\
-\t@if [ -f $(RELEASEdir)/*.o ]; then rm $(RELEASEdir)/*.o; fi\n\
-\t@if [ -f $(RELEASEdir)/run ]; then rm $(RELEASEdir)/run; fi\n\
-\n\
-$(DEBUGdir)/run: $(debug_obj)\n\
-\t$(COMPILER) $^ -o $@ \\\n\
-\t$(LINKERS)\n\
-\n\
-$(RELEASEdir)/run: $(release_obj)\n\
-\t$(COMPILER) $^ -o $@ \\\n\
-\t$(LINKERS)\n\
-\n\
-$(DEBUGdir)/%.o: $(SRCdir)/%$(EX) $(hdr)\n\
-\t$(COMPILER) -c $< -o $@ \\\n\
-\t-I \"$(HDRdir)/\" $(DEBUGflags)\n\
-\n\
-$(RELEASEdir)/%.o: $(SRCdir)/%$(EX) $(hdr)\n\
-\t$(COMPILER) -c $< -o $@ \\\n\
-\t-I \"$(HDRdir)/\" $(RELEASEflags)\n";
-
-        write(fd, content, 1088);
-    }
-    else
-    {
-        char * content = \
-"OBJdir = bin\n\
-HDRdir = hdr\n\
-SRCdir = src\n\n\
-obj = $(patsubst $(SRCdir)/%$(EX), $(OBJdir)/%.o, $(wildcard $(SRCdir)/*))\n\
-hdr = $(wildcard $(HDRdir)/*)\n\n\
-build: $(OBJdir)/run\n\n\
-run: $(OBJdir)/run\n\t./$^\n\n\
-clean:\n\
-\t@if [ -f $(OBJdir)/*.o ]; then rm $(OBJdir)/*.o; fi\n\
-\t@if [ -f $(OBJdir)/run ]; then rm $(OBJdir)/run; fi\n\
-\n\
-$(OBJdir)/run: $(obj)\n\t$(COMPILER) $^ -o $@\n\n\
-$(OBJdir)/%.o: $(SRCdir)/%$(EX) $(hdr)\n\t\
-$(COMPILER) -c $< -o $@ -I \"$(HDRdir)/\"\n";
-
-        write(fd, content, 433);
+        write(Makefile, "COMPILER = g++\nEX = .cpp\n\n", 26);
     }
     
-    close(fd);
+    int template;
+    char makefilePath[255]; strcpy(makefilePath, HOME_PATH);
+
+    if (is_advanced)
+    {
+        strcat(makefilePath, MAKEFILE_TEMP2_PATH);
+        template = open(makefilePath, O_RDONLY);
+    }
+    else
+    {
+        strcat(makefilePath, MAKEFILE_TEMP1_PATH);
+        template = open(makefilePath, O_RDONLY);
+    }
+
+    char letter;
+    while(read(template, &letter, 1) > 0)
+        write(Makefile, &letter, 1);
+    
+    close(template);
+    close(Makefile);
+}
+
+void create_dir(char * dirName)
+{
+    pid_t pid = fork();
+    if(pid == 0)
+    {
+        execlp("mkdir", "mkdir", dirName, NULL);
+        exit(1);
+    }
+    wait(NULL);
 }
 
 
 void create_dirs(boolean is_advanced)
 {
-    pid_t pid;
-
-    pid = fork();
-    if(pid == 0)
-    {
-        execlp("mkdir", "mkdir", "hdr", NULL);
-        exit(1);
-    }
-    wait(NULL);
-
-    pid = fork();
-    if(pid == 0)
-    {
-        execlp("mkdir", "mkdir", "src", NULL);
-        exit(1);
-    }
-    wait(NULL);
-
-    pid = fork();
-    if(pid == 0)
-    {
-        execlp("mkdir", "mkdir", "bin", NULL);
-        exit(1);
-    }
-    wait(NULL);
+    create_dir("src");
+    create_dir("bin");
+    create_dir("include");
     
     if(is_advanced)
     {
-        pid = fork();
-        if(pid == 0)
-        {
-            execlp("mkdir", "mkdir", "bin/debug", NULL);
-            exit(1);
-        }
-
-        wait(NULL);
-
-        pid = fork();
-        if(pid == 0)
-        {
-            execlp("mkdir", "mkdir", "bin/release", NULL);
-            exit(1);
-        }
+        create_dir("bin/debug");
+        create_dir("bin/release");
     }
-    wait(NULL);
 }
