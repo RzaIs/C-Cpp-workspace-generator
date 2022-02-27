@@ -1,7 +1,7 @@
 # C/C++ Worksace generator
 
 ## What this program does?
-The program creates directories "src" "include" and "bin" for orgaising your workspace and also creates a makefile for easy compile/run.
+The program creates directories "src" "include" and "bin" for organising your workspace and also creates a makefile for easy compile/run.
 
 ## How to install
 Simple! Open a terminal in the project folder and type "sh install.sh" and enter your password for root access (this is required to move executable program inside "/usr/local/bin")
