@@ -1,6 +1,3 @@
-COMPILER = g++
-EX = .cpp
-
 OBJdir = bin
 DEBUGdir = $(OBJdir)/debug
 RELEASEdir = $(OBJdir)/release
@@ -26,10 +23,8 @@ run_release: $(RELEASEdir)/run
 	./$^
 
 clean:
-	@if [ -f $(DEBUGdir)/*.o ]; then rm $(DEBUGdir)/*.o; fi
-	@if [ -f $(DEBUGdir)/run ]; then rm $(DEBUGdir)/run; fi
-	@if [ -f $(RELEASEdir)/*.o ]; then rm $(RELEASEdir)/*.o; fi
-	@if [ -f $(RELEASEdir)/run ]; then rm $(RELEASEdir)/run; fi
+	@if find $(DEBUGdir) -mindepth 1 -maxdepth 1 | read; then rm $(DEBUGdir)/*; fi
+	@if find $(RELEASEdir) -mindepth 1 -maxdepth 1 | read; then rm $(RELEASEdir)/*; fi
 
 $(DEBUGdir)/run: $(debug_obj)
 	$(COMPILER) $^ -o $@ \

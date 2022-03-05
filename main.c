@@ -8,6 +8,11 @@
 
 #ifdef __linux__
     #include <wait.h>
+    #define gitignoreContent "bin/\n.vscode/\n"
+#endif
+
+#ifdef __APPLE__
+    #define gitignoreContent "bin/\n.vscode/\n.DS_Store\n"
 #endif
 
 #define MAKEFILE_TEMP1_PATH "/.genenv_config/makefile1"
@@ -27,6 +32,7 @@ void create_dir(char * dirName);
 void create_dirs(boolean is_advanced);
 void create_makefile(boolean is_C, boolean is_advanced);
 void create_main(boolean is_C);
+void init_git_repo();
 
 int main(int argc, char ** argv)
 {
@@ -35,10 +41,10 @@ int main(int argc, char ** argv)
     boolean is_c = True;
     boolean run_vs_code = False;
     boolean advanced = False;
-
+    boolean git_init = False;
     int opt;
 
-    while ((opt = getopt(argc, argv, "c:vad:")) != -1)
+    while ((opt = getopt(argc, argv, "c:vad:g")) != -1)
     {
         switch (opt)
         {
@@ -62,6 +68,9 @@ int main(int argc, char ** argv)
             create_dir(optarg);
             chdir(optarg);
             break;
+        case 'g':
+            git_init = True;
+            break;
         default:
             break;
         }
@@ -70,8 +79,11 @@ int main(int argc, char ** argv)
     create_makefile(is_c, advanced);
     create_main(is_c);
 
-    if(run_vs_code)
-        execlp("code", "code", ".", NULL);
+    if (git_init)
+        init_git_repo();
+
+    if (run_vs_code)
+        system("code .");
 
     return 0;
 }
@@ -155,10 +167,14 @@ void create_makefile(boolean is_C, boolean is_advanced)
 
 void create_dir(char * dirName)
 {
+    char cmd[strlen(dirName) + 10];
+    strcpy(cmd, "mkdir ");
+    strcat(cmd, dirName);
+
     pid_t pid = fork();
     if(pid == 0)
     {
-        execlp("mkdir", "mkdir", dirName, NULL);
+        system(cmd);
         exit(1);
     }
     wait(NULL);
@@ -176,4 +192,21 @@ void create_dirs(boolean is_advanced)
         create_dir("bin/debug");
         create_dir("bin/release");
     }
+}
+
+void init_git_repo() {
+    int gitignore = open(
+        ".gitignore", O_WRONLY | O_CREAT | O_TRUNC,
+        S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH
+    );
+    write(gitignore, gitignoreContent, strlen(gitignoreContent));
+    close(gitignore);
+
+    pid_t pid = fork();
+    if (pid == 0)
+    {
+        system("git init > /dev/null");
+        exit(1);
+    }
+    wait(NULL);
 }
