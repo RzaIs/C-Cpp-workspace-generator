@@ -175,7 +175,7 @@ void create_dir(char * dirName)
     if(pid == 0)
     {
         system(cmd);
-        exit(1);
+        exit(0);
     }
     wait(NULL);
 }
@@ -206,7 +206,7 @@ void init_git_repo() {
     if (pid == 0)
     {
         system("git init > /dev/null");
-        exit(1);
+        exit(0);
     }
     wait(NULL);
 }
