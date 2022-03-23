@@ -20,3 +20,7 @@ $(OBJdir)/run: $(obj)
 
 $(OBJdir)/%.o: $(SRCdir)/%$(EX) $(hdr)
 	$(COMPILER) -c $< -o $@ -I "$(HDRdir)/" $(FLAGS)
+
+%.run: $(SRCdir)/%$(EX) $(hdr)
+	$(COMPILER) $< -o $(OBJdir)/$@ -I "$(HDRdir)/" $(FLAGS)
+	./$(OBJdir)/$@
